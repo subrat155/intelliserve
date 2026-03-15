@@ -1,0 +1,59 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "Enterprise user profile",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "displayName": { "type": "string" },
+        "role": { "type": "string", "enum": ["admin", "employee"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email", "role"]
+    },
+    "Document": {
+      "title": "Document",
+      "description": "Uploaded company document metadata and chunks",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "type": { "type": "string" },
+        "category": { "type": "string" },
+        "uploadedBy": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "chunks": { "type": "array", "items": { "type": "string" } },
+        "embeddings": { "type": "array", "items": { "type": "array", "items": { "type": "number" } } }
+      },
+      "required": ["name", "uploadedBy"]
+    },
+    "ChatQuery": {
+      "title": "ChatQuery",
+      "description": "User query and AI response history",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "question": { "type": "string" },
+        "answer": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "contextUsed": { "type": "array", "items": { "type": "string" } }
+      },
+      "required": ["userId", "question", "answer", "timestamp"]
+    }
+  },
+  "firestore": {
+    "users/{userId}": {
+      "schema": "User",
+      "description": "User profiles"
+    },
+    "documents/{docId}": {
+      "schema": "Document",
+      "description": "Company knowledge base documents"
+    },
+    "queries/{queryId}": {
+      "schema": "ChatQuery",
+      "description": "History of user interactions"
+    }
+  }
+}

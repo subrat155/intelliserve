@@ -1,0 +1,10 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // WARNING: Public access enabled for prototype/demo purposes
+    // because iframe cross-origin restrictions often block Google Sign-In.
+    match /{document=**} {
+      allow read, write: if true;
+    }
+  }
+}

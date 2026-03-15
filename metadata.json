@@ -1,0 +1,9 @@
+{
+  "name": "INTELLISERVE – AI Driven Enterprise Support Chatbot",
+  "description": "An AI-powered enterprise support chatbot using RAG to answer HR, IT, and administrative queries from company documents.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone",
+    "geolocation"
+  ]
+}
