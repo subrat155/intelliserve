@@ -74,7 +74,7 @@ const Sidebar = ({ user, isAdmin, theme, toggleTheme, isMobileMenuOpen, setIsMob
           onClick={() => setIsMobileMenuOpen?.(false)}
         />
       )}
-      <div className={`fixed md:static inset-y-0 left-0 z-50 bg-slate-900 text-white dark:bg-slate-800 dark:text-slate-200 h-screen transition-all duration-300 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 ${isOpen ? 'w-64' : 'w-20'} flex flex-col`}>
+      <div className={`fixed md:static inset-y-0 left-0 z-50 bg-slate-900 text-white dark:bg-slate-800 dark:text-slate-200 h-[100dvh] transition-all duration-300 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 ${isOpen ? 'w-64' : 'w-20'} flex flex-col`}>
         <div className="p-6 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <img src="https://cdn-icons-png.flaticon.com/128/3845/3845696.png" alt="IntelliServe Logo" className="w-8 h-8" referrerPolicy="no-referrer" />
@@ -644,7 +644,7 @@ const HRAdminPage = ({ onLogout }: { onLogout: () => void }) => {
 const WelcomePage = () => {
   const navigate = useNavigate();
   return (
-    <div className="h-screen bg-slate-50 flex flex-col items-center justify-center p-4 text-center relative overflow-hidden">
+    <div className="h-[100dvh] bg-slate-50 flex flex-col items-center justify-center p-4 text-center relative overflow-hidden">
       {/* Background Decoration */}
       <div className="absolute top-0 left-0 w-full h-full pointer-events-none z-0 opacity-5">
         <lottie-player 
@@ -751,7 +751,7 @@ const LoginPage = ({ mode }: { mode: 'signin' | 'signup' }) => {
     : "Sign in to IntelliServe as employee";
 
   return (
-    <div className="h-screen bg-slate-50 flex flex-col items-center justify-center p-4 relative overflow-hidden">
+    <div className="h-[100dvh] bg-slate-50 flex flex-col items-center justify-center p-4 relative overflow-hidden">
       {/* Interactive AI Lottie Animations */}
       <div className="absolute top-0 left-0 w-full h-full pointer-events-none z-0 flex items-center justify-center opacity-10">
         <lottie-player 
@@ -940,6 +940,15 @@ const ChatbotPage = ({ user }: { user: User }) => {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages, loading]);
 
   useEffect(() => {
     if (inputRef.current) {
@@ -1002,17 +1011,17 @@ const ChatbotPage = ({ user }: { user: User }) => {
   };
 
   return (
-    <div className="absolute inset-0 flex flex-col max-w-4xl mx-auto p-2 md:p-4 w-full overflow-hidden">
-      <div className="flex-1 overflow-y-auto space-y-4 mb-4 p-2 md:p-4 scrollbar-hide">
+    <div className="absolute inset-0 flex flex-col max-w-4xl mx-auto w-full overflow-hidden">
+      <div className="flex-1 overflow-y-auto space-y-4 p-3 md:p-4 scrollbar-hide flex flex-col">
         {messages.length === 0 && (
-          <div className="flex flex-col items-center justify-center h-full text-center">
-            <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-2xl flex items-center justify-center mb-4 shrink-0">
-              <MessageSquare size={32} />
+          <div className="flex-1 flex flex-col items-center justify-center text-center">
+            <div className="w-12 h-12 md:w-16 md:h-16 bg-emerald-100 text-emerald-600 rounded-2xl flex items-center justify-center mb-4 shrink-0">
+              <MessageSquare size={28} className="md:w-8 md:h-8" />
             </div>
-            <h2 className="text-xl font-bold text-slate-900 dark:text-white shrink-0">How can I help you today?</h2>
-            <p className="text-slate-500 dark:text-slate-400 shrink-0">Ask me about HR policies, IT support, or company rules.</p>
-            <div className="mt-4 w-full max-w-xs shrink-0">
-              <iframe src="https://lottie.host/embed/bf00e926-7f55-4eed-8467-5b90f505847a/ssDtlyBD1T.lottie" width="100%" height="200px" title="Chatbot Animation" className="border-0"></iframe>
+            <h2 className="text-lg md:text-xl font-bold text-slate-900 dark:text-white shrink-0">How can I help you today?</h2>
+            <p className="text-sm md:text-base text-slate-500 dark:text-slate-400 shrink-0 px-4">Ask me about HR policies, IT support, or company rules.</p>
+            <div className="mt-4 w-full max-w-[180px] md:max-w-xs shrink-0">
+              <iframe src="https://lottie.host/embed/bf00e926-7f55-4eed-8467-5b90f505847a/ssDtlyBD1T.lottie" width="100%" height="120px" title="Chatbot Animation" className="border-0 md:h-[200px]"></iframe>
             </div>
           </div>
         )}
@@ -1023,12 +1032,12 @@ const ChatbotPage = ({ user }: { user: User }) => {
             animate={{ opacity: 1, x: 0 }}
             className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
           >
-            <div className={`max-w-[80%] p-4 rounded-2xl ${
+            <div className={`max-w-[85%] md:max-w-[80%] p-3 md:p-4 rounded-2xl ${
               msg.role === 'user' 
                 ? 'bg-emerald-600 text-white rounded-tr-none' 
                 : 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm border border-slate-100 dark:border-slate-600 rounded-tl-none'
             }`}>
-              {msg.text}
+              <p className="text-sm md:text-base leading-relaxed">{msg.text}</p>
               {msg.role === 'ai' && (
                 <button 
                   onClick={async (e) => {
@@ -1049,7 +1058,7 @@ const ChatbotPage = ({ user }: { user: User }) => {
                       btn.disabled = false;
                     }, 2000);
                   }}
-                  className="block mt-2 text-xs text-emerald-600 hover:underline font-semibold disabled:opacity-50"
+                  className="block mt-2 text-[10px] md:text-xs text-emerald-600 hover:underline font-semibold disabled:opacity-50"
                 >
                   Add to Knowledge Base
                 </button>
@@ -1059,31 +1068,34 @@ const ChatbotPage = ({ user }: { user: User }) => {
         ))}
         {loading && (
           <div className="flex justify-start">
-            <div className="bg-white p-2 rounded-2xl shadow-sm border border-slate-100 rounded-tl-none flex items-center gap-2">
+            <div className="bg-white dark:bg-slate-700 p-2 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-600 rounded-tl-none flex items-center gap-2">
               <GlobalLoader size="sm" />
-              <span className="text-sm text-slate-500">IntelliServe is thinking...</span>
+              <span className="text-xs md:text-sm text-slate-500 dark:text-slate-400">IntelliServe is thinking...</span>
             </div>
           </div>
         )}
+        <div ref={messagesEndRef} />
       </div>
 
-      <div className="bg-white dark:bg-slate-800 p-2 md:p-4 rounded-2xl md:rounded-3xl shadow-lg border border-slate-100 dark:border-slate-700 flex items-center gap-2">
-        <input 
-          ref={inputRef}
-          type="text" 
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyPress={(e) => e.key === 'Enter' && handleSend()}
-          placeholder="Type your question here..."
-          className="flex-1 min-w-0 bg-transparent outline-none px-2 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 text-sm md:text-base"
-        />
-        <button 
-          onClick={handleSend}
-          disabled={loading}
-          className="shrink-0 bg-emerald-600 text-white p-2.5 md:p-3 rounded-xl md:rounded-2xl hover:bg-emerald-700 transition-colors disabled:opacity-50 flex items-center justify-center"
-        >
-          <Send size={18} className="md:w-5 md:h-5" />
-        </button>
+      <div className="p-2 md:p-4 shrink-0 bg-slate-50 dark:bg-slate-950">
+        <div className="bg-white dark:bg-slate-800 p-2 md:p-3 rounded-2xl md:rounded-3xl shadow-lg border border-slate-100 dark:border-slate-700 flex items-center gap-2">
+          <input 
+            ref={inputRef}
+            type="text" 
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyPress={(e) => e.key === 'Enter' && handleSend()}
+            placeholder="Type your question here..."
+            className="flex-1 min-w-0 bg-transparent outline-none px-2 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 text-sm md:text-base"
+          />
+          <button 
+            onClick={handleSend}
+            disabled={loading || !input.trim()}
+            className="shrink-0 bg-emerald-600 text-white p-2.5 md:p-3 rounded-xl md:rounded-2xl hover:bg-emerald-700 transition-colors disabled:opacity-50 flex items-center justify-center"
+          >
+            <Send size={18} className="md:w-5 md:h-5" />
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -1355,7 +1367,7 @@ const AuthenticatedApp = ({ theme, toggleTheme, isMobileMenuOpen, setIsMobileMen
 
   if (loading || !isLoaded || !dbUser) {
     return (
-      <div className="h-screen flex items-center justify-center bg-slate-900 text-white">
+      <div className="h-[100dvh] flex items-center justify-center bg-slate-900 text-white">
         <div className="text-center flex flex-col items-center">
           <GlobalLoader size="lg" />
           <p className="text-slate-400 -mt-8">Loading your workspace...</p>
@@ -1365,7 +1377,7 @@ const AuthenticatedApp = ({ theme, toggleTheme, isMobileMenuOpen, setIsMobileMen
   }
 
   return (
-    <div className="flex h-screen bg-slate-50 dark:bg-slate-950 overflow-hidden">
+    <div className="flex h-[100dvh] bg-slate-50 dark:bg-slate-950 overflow-hidden">
       <Sidebar 
         user={dbUser} 
         isAdmin={isAdmin} 
@@ -1386,7 +1398,7 @@ const AuthenticatedApp = ({ theme, toggleTheme, isMobileMenuOpen, setIsMobileMen
           </button>
         </div>
         <div className="flex-1 flex flex-col min-h-0 relative">
-          <div className="flex-1 relative">
+          <div className="flex-1 relative min-h-0">
             <Routes>
               <Route path="/" element={<Dashboard user={dbUser} />} />
               <Route path="/chat" element={<ChatbotPage user={dbUser} />} />
@@ -1433,7 +1445,7 @@ export default function App() {
 
   if (!isLoaded) {
     return (
-      <div className="h-screen flex items-center justify-center bg-slate-900 text-white">
+      <div className="h-[100dvh] flex items-center justify-center bg-slate-900 text-white">
         <GlobalLoader size="lg" />
       </div>
     );
