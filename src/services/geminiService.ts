@@ -1,10 +1,10 @@
 import { GoogleGenAI, Type } from "@google/genai";
 
 // Support both AI Studio's environment and standard local Vite environment variables
-const apiKey = process.env.GEMINI_API_KEY || (import.meta as any).env?.VITE_GEMINI_API_KEY;
+const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
 
-if (!apiKey) {
-  console.error("Missing Gemini API Key! Please check your .env file and ensure GEMINI_API_KEY is set.");
+if (!apiKey || apiKey.includes('your_api_key_here')) {
+  console.error("Missing Gemini API Key! Please check your Vercel Environment Variables and ensure VITE_GEMINI_API_KEY is set.");
 }
 
 const ai = new GoogleGenAI({ apiKey: apiKey as string });

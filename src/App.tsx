@@ -187,12 +187,12 @@ const EmployeeServicesPage = ({ user }: { user: User }) => {
   }
 
   return (
-    <div className="p-8 dark:text-white">
-      <h1 className="text-3xl font-bold mb-6">Employee Services</h1>
+    <div className="h-full overflow-y-auto p-4 md:p-8 scrollbar-hide dark:text-white">
+      <h1 className="text-2xl md:text-3xl font-bold mb-4 md:mb-6">Employee Services</h1>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700">
-          <h2 className="text-xl font-bold mb-4 dark:text-white">Leave Request</h2>
-          <p className="text-slate-500 dark:text-slate-400 mb-4">Submit your leave application here.</p>
+        <div className="bg-white dark:bg-slate-800 p-4 md:p-6 rounded-2xl md:rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700">
+          <h2 className="text-xl font-bold mb-2 md:mb-4 dark:text-white">Leave Request</h2>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">Submit your leave application here.</p>
           
           <div className="flex gap-2 mb-6">
             <input 
@@ -200,12 +200,12 @@ const EmployeeServicesPage = ({ user }: { user: User }) => {
               value={leaveReason}
               onChange={(e) => setLeaveReason(e.target.value)}
               placeholder="Reason for leave..."
-              className="flex-1 px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              className="flex-1 min-w-0 px-3 md:px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm md:text-base"
             />
             <button 
               onClick={requestLeave} 
               disabled={!leaveReason.trim() || isSubmitting}
-              className="bg-emerald-600 text-white px-4 py-2 rounded-xl disabled:opacity-50"
+              className="shrink-0 bg-emerald-600 text-white px-4 py-2 rounded-xl disabled:opacity-50 text-sm md:text-base font-medium"
             >
               Request
             </button>
@@ -214,11 +214,11 @@ const EmployeeServicesPage = ({ user }: { user: User }) => {
           {myLeaves.length > 0 && (
             <div>
               <h3 className="font-bold text-slate-900 dark:text-white mb-2">My Recent Requests</h3>
-              <div className="space-y-2">
+              <div className="space-y-2 max-h-48 overflow-y-auto scrollbar-hide">
                 {myLeaves.map(l => (
                   <div key={l.id} className="p-3 bg-slate-50 dark:bg-slate-700 rounded-xl flex justify-between items-center">
-                    <span className="text-sm font-medium dark:text-slate-200">{l.reason}</span>
-                    <span className={`text-xs font-bold px-2 py-1 rounded-full ${l.status === 'Approved' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300' : l.status === 'Rejected' ? 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300' : 'bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300'}`}>
+                    <span className="text-sm font-medium dark:text-slate-200 truncate pr-2">{l.reason}</span>
+                    <span className={`shrink-0 text-[10px] md:text-xs font-bold px-2 py-1 rounded-full ${l.status === 'Approved' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300' : l.status === 'Rejected' ? 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300' : 'bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300'}`}>
                       {l.status || 'Pending'}
                     </span>
                   </div>
@@ -227,25 +227,25 @@ const EmployeeServicesPage = ({ user }: { user: User }) => {
             </div>
           )}
         </div>
-        <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
-          <h2 className="text-xl font-bold mb-4">Payroll Info</h2>
-          <p className="text-slate-500 mb-4">View your recent payslips.</p>
-          <div className="space-y-3 max-h-96 overflow-y-auto">
+        <div className="bg-white dark:bg-slate-800 p-4 md:p-6 rounded-2xl md:rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700">
+          <h2 className="text-xl font-bold mb-2 md:mb-4 dark:text-white">Payroll Info</h2>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">View your recent payslips.</p>
+          <div className="space-y-3 max-h-96 overflow-y-auto scrollbar-hide">
             {myPayslips.map(p => (
-              <div key={p.id} className="flex justify-between items-center p-4 bg-slate-50 rounded-xl">
-                <div>
-                  <p className="font-semibold text-slate-900">{p.month}</p>
-                  <p className="text-xs text-slate-500">Uploaded: {p.createdAt?.toDate().toLocaleDateString()}</p>
+              <div key={p.id} className="flex justify-between items-center p-3 md:p-4 bg-slate-50 dark:bg-slate-700 rounded-xl">
+                <div className="min-w-0">
+                  <p className="font-semibold text-slate-900 dark:text-white truncate">{p.month}</p>
+                  <p className="text-[10px] md:text-xs text-slate-500 dark:text-slate-400">Uploaded: {p.createdAt?.toDate().toLocaleDateString()}</p>
                 </div>
                 <button 
                   onClick={() => setSelectedPayslip(p)} 
-                  className="bg-slate-900 text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-slate-800 transition-colors"
+                  className="shrink-0 bg-slate-900 dark:bg-slate-600 text-white px-3 md:px-4 py-2 rounded-xl text-xs md:text-sm font-medium hover:bg-slate-800 dark:hover:bg-slate-500 transition-colors"
                 >
                   View Payslip
                 </button>
               </div>
             ))}
-            {myPayslips.length === 0 && <p className="text-slate-500 text-sm">No payslips available.</p>}
+            {myPayslips.length === 0 && <p className="text-slate-500 dark:text-slate-400 text-sm">No payslips available.</p>}
           </div>
         </div>
       </div>
@@ -274,30 +274,30 @@ const EmployeeServicesPage = ({ user }: { user: User }) => {
 };
 
 const ITSupportPage = () => (
-  <div className="p-8 dark:text-white">
+  <div className="h-full overflow-y-auto p-4 md:p-8 scrollbar-hide dark:text-white">
     <h1 className="text-3xl font-bold mb-6">IT Support</h1>
     <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700 max-w-2xl">
       <h2 className="text-xl font-bold mb-4 dark:text-white">Intelliserve Support</h2>
       <p className="text-slate-600 dark:text-slate-400 mb-6">For any technical issues or inquiries, please contact our support team using the details below.</p>
       
       <div className="space-y-4">
-        <div className="flex items-center gap-4 p-4 bg-slate-50 dark:bg-slate-700 rounded-2xl">
-          <div className="bg-emerald-100 dark:bg-emerald-900/30 p-3 rounded-full text-emerald-600 dark:text-emerald-400">
-            <Headphones size={24} />
+        <div className="flex items-center gap-4 p-3 md:p-4 bg-slate-50 dark:bg-slate-700 rounded-2xl">
+          <div className="bg-emerald-100 dark:bg-emerald-900/30 p-2 md:p-3 rounded-full text-emerald-600 dark:text-emerald-400 shrink-0">
+            <Headphones size={20} className="md:w-6 md:h-6" />
           </div>
-          <div>
-            <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">Toll-Free Support Number</p>
-            <p className="text-lg font-bold text-slate-900 dark:text-white">1800-474-474</p>
+          <div className="min-w-0">
+            <p className="text-xs md:text-sm text-slate-500 dark:text-slate-400 font-medium">Toll-Free Support Number</p>
+            <p className="text-base md:text-lg font-bold text-slate-900 dark:text-white">1800-474-474</p>
           </div>
         </div>
 
-        <div className="flex items-center gap-4 p-4 bg-slate-50 dark:bg-slate-700 rounded-2xl">
-          <div className="bg-blue-100 dark:bg-blue-900/30 p-3 rounded-full text-blue-600 dark:text-blue-400">
-            <MessageSquare size={24} />
+        <div className="flex items-center gap-4 p-3 md:p-4 bg-slate-50 dark:bg-slate-700 rounded-2xl">
+          <div className="bg-blue-100 dark:bg-blue-900/30 p-2 md:p-3 rounded-full text-blue-600 dark:text-blue-400 shrink-0">
+            <MessageSquare size={20} className="md:w-6 md:h-6" />
           </div>
-          <div>
-            <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">Email Support</p>
-            <p className="text-lg font-bold text-slate-900 dark:text-white">support@intelliserve.com</p>
+          <div className="min-w-0">
+            <p className="text-xs md:text-sm text-slate-500 dark:text-slate-400 font-medium">Email Support</p>
+            <p className="text-base md:text-lg font-bold text-slate-900 dark:text-white break-all">support@intelliserve.com</p>
           </div>
         </div>
       </div>
@@ -306,7 +306,7 @@ const ITSupportPage = () => (
 );
 
 const EmployeeProfilePage = ({ user }: { user: User }) => (
-  <div className="p-8 dark:text-white">
+  <div className="h-full overflow-y-auto p-4 md:p-8 scrollbar-hide dark:text-white">
     <h1 className="text-3xl font-bold mb-6 text-slate-900 dark:text-white">Profile</h1>
     <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700">
       <p className="mb-2 text-slate-900 dark:text-white"><strong className="text-slate-900 dark:text-white">Employee ID:</strong> <span className="font-mono bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded text-emerald-700 dark:text-emerald-400 font-bold">{user.employeeId || '----'}</span></p>
@@ -466,7 +466,7 @@ const HRAdminPage = ({ onLogout }: { onLogout: () => void }) => {
   };
 
   return (
-    <div className="p-8 dark:bg-slate-950 min-h-screen">
+    <div className="h-full overflow-y-auto p-4 md:p-8 scrollbar-hide dark:bg-slate-950">
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold dark:text-white">HR Dashboard</h1>
         <div className="flex items-center gap-4">
@@ -853,7 +853,7 @@ const Dashboard = ({ user }: { user: User }) => {
   }, []);
 
   return (
-    <div className="p-8">
+    <div className="h-full overflow-y-auto p-4 md:p-8 scrollbar-hide">
       <header className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Welcome back, {user.displayName}</h1>
@@ -1002,8 +1002,8 @@ const ChatbotPage = ({ user }: { user: User }) => {
   };
 
   return (
-    <div className="absolute inset-0 flex flex-col max-w-4xl mx-auto p-4 w-full">
-      <div className="flex-1 overflow-y-auto space-y-4 mb-4 p-4 scrollbar-hide">
+    <div className="absolute inset-0 flex flex-col max-w-4xl mx-auto p-2 md:p-4 w-full overflow-hidden">
+      <div className="flex-1 overflow-y-auto space-y-4 mb-4 p-2 md:p-4 scrollbar-hide">
         {messages.length === 0 && (
           <div className="flex flex-col items-center justify-center h-full text-center">
             <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-2xl flex items-center justify-center mb-4 shrink-0">
@@ -1067,7 +1067,7 @@ const ChatbotPage = ({ user }: { user: User }) => {
         )}
       </div>
 
-      <div className="bg-white dark:bg-slate-800 p-4 rounded-3xl shadow-lg border border-slate-100 dark:border-slate-700 flex gap-2">
+      <div className="bg-white dark:bg-slate-800 p-2 md:p-4 rounded-2xl md:rounded-3xl shadow-lg border border-slate-100 dark:border-slate-700 flex items-center gap-2">
         <input 
           ref={inputRef}
           type="text" 
@@ -1075,14 +1075,14 @@ const ChatbotPage = ({ user }: { user: User }) => {
           onChange={(e) => setInput(e.target.value)}
           onKeyPress={(e) => e.key === 'Enter' && handleSend()}
           placeholder="Type your question here..."
-          className="flex-1 bg-transparent outline-none px-2 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500"
+          className="flex-1 min-w-0 bg-transparent outline-none px-2 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 text-sm md:text-base"
         />
         <button 
           onClick={handleSend}
           disabled={loading}
-          className="bg-emerald-600 text-white p-3 rounded-2xl hover:bg-emerald-700 transition-colors disabled:opacity-50"
+          className="shrink-0 bg-emerald-600 text-white p-2.5 md:p-3 rounded-xl md:rounded-2xl hover:bg-emerald-700 transition-colors disabled:opacity-50 flex items-center justify-center"
         >
-          <Send size={20} />
+          <Send size={18} className="md:w-5 md:h-5" />
         </button>
       </div>
     </div>
@@ -1105,7 +1105,7 @@ const KnowledgeBase = () => {
   const filteredDocs = docs.filter(d => d.name.toLowerCase().includes(search.toLowerCase()));
 
   return (
-    <div className="p-8 dark:text-white">
+    <div className="h-full overflow-y-auto p-4 md:p-8 scrollbar-hide dark:text-white">
       <div className="flex justify-between items-end mb-8">
         <div>
           <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Knowledge Base</h1>
@@ -1174,7 +1174,7 @@ const HistoryPage = ({ user }: { user: User }) => {
   }, [user]);
 
   return (
-    <div className="p-4 md:p-8 dark:text-white">
+    <div className="h-full overflow-y-auto p-4 md:p-8 scrollbar-hide dark:text-white">
       <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white mb-6 md:mb-8">Query History</h1>
       <div className="bg-white dark:bg-slate-800 rounded-2xl md:rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700 overflow-x-auto">
         <table className="w-full text-left min-w-[600px]">
@@ -1258,6 +1258,7 @@ const GlobalLoader = ({ size = "md" }: { size?: "sm" | "md" | "lg" }) => {
 const AuthenticatedApp = ({ theme, toggleTheme, isMobileMenuOpen, setIsMobileMenuOpen }: any) => {
   const { user, isLoaded } = useUser();
   const { signOut } = useAuth();
+  const location = useLocation();
   const [dbUser, setDbUser] = useState<User | null>(null);
   const [isAdmin, setIsAdmin] = useState(() => {
     if (!user) return false;
@@ -1268,7 +1269,6 @@ const AuthenticatedApp = ({ theme, toggleTheme, isMobileMenuOpen, setIsMobileMen
 
   const isHRAuthenticated = user?.primaryEmailAddress?.emailAddress === 'kumarsubrat627@gmail.com';
   const navigate = useNavigate();
-  const location = useLocation();
 
   useEffect(() => {
     if (isLoaded && user) {
@@ -1375,7 +1375,7 @@ const AuthenticatedApp = ({ theme, toggleTheme, isMobileMenuOpen, setIsMobileMen
         isMobileMenuOpen={isMobileMenuOpen} 
         setIsMobileMenuOpen={setIsMobileMenuOpen}
       />
-      <main className="flex-1 overflow-y-auto dark:bg-slate-950 flex flex-col relative">
+      <main className="flex-1 flex flex-col min-w-0 bg-slate-50 dark:bg-slate-950 relative overflow-hidden">
         <div className="md:hidden p-4 bg-white dark:bg-slate-900 flex items-center justify-between border-b border-slate-200 dark:border-slate-800 shrink-0">
           <div className="flex items-center gap-2">
             <img src="https://cdn-icons-png.flaticon.com/128/3845/3845696.png" alt="IntelliServe Logo" className="w-8 h-8" referrerPolicy="no-referrer" />
@@ -1385,7 +1385,7 @@ const AuthenticatedApp = ({ theme, toggleTheme, isMobileMenuOpen, setIsMobileMen
             <Menu size={24} />
           </button>
         </div>
-        <div className="flex-1 overflow-y-auto flex flex-col">
+        <div className="flex-1 flex flex-col min-h-0 relative">
           <div className="flex-1 relative">
             <Routes>
               <Route path="/" element={<Dashboard user={dbUser} />} />
@@ -1398,9 +1398,11 @@ const AuthenticatedApp = ({ theme, toggleTheme, isMobileMenuOpen, setIsMobileMen
               <Route path="/admin" element={isAdmin ? <HRAdminPage onLogout={() => {}} /> : <Navigate to="/" replace />} />
             </Routes>
           </div>
-          <footer className="p-4 text-center text-sm text-slate-500 dark:text-slate-400 shrink-0">
-            Design and Developed By Grp-255,GEC
-          </footer>
+          {location.pathname !== '/chat' && (
+            <footer className="p-4 text-center text-sm text-slate-500 dark:text-slate-400 shrink-0 border-t border-slate-100 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm">
+              Design and Developed By Grp-255,GEC
+            </footer>
+          )}
         </div>
       </main>
       <FloatingChatButton />
