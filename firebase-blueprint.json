@@ -54,6 +54,89 @@
     "queries/{queryId}": {
       "schema": "ChatQuery",
       "description": "History of user interactions"
+    },
+    "leaveRequests/{requestId}": {
+      "schema": "LeaveRequest",
+      "description": "Employee leave requests"
+    },
+    "payslips/{payslipId}": {
+      "schema": "Payslip",
+      "description": "Employee payslips"
+    }
+  },
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "Enterprise user profile",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "displayName": { "type": "string" },
+        "role": { "type": "string", "enum": ["admin", "employee"] },
+        "employeeId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email", "role"]
+    },
+    "Document": {
+      "title": "Document",
+      "description": "Uploaded company document metadata and chunks",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "content": { "type": "string" },
+        "fileData": { "type": "string" },
+        "fileType": { "type": "string" },
+        "category": { "type": "string" },
+        "uploadedBy": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "chunks": { "type": "array", "items": { "type": "string" } }
+      },
+      "required": ["name", "uploadedBy"]
+    },
+    "ChatQuery": {
+      "title": "ChatQuery",
+      "description": "User query and AI response history",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "userEmail": { "type": "string" },
+        "question": { "type": "string" },
+        "answer": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "contextUsed": { "type": "array", "items": { "type": "string" } }
+      },
+      "required": ["userId", "question", "answer", "timestamp"]
+    },
+    "LeaveRequest": {
+      "title": "LeaveRequest",
+      "description": "Employee leave request",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "userName": { "type": "string" },
+        "userEmail": { "type": "string" },
+        "reason": { "type": "string" },
+        "status": { "type": "string", "enum": ["Pending", "Approved", "Rejected"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "reason", "status"]
+    },
+    "Payslip": {
+      "title": "Payslip",
+      "description": "Employee payslip",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "userEmail": { "type": "string" },
+        "month": { "type": "string" },
+        "fileData": { "type": "string" },
+        "fileType": { "type": "string" },
+        "uploadedBy": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "userEmail", "month", "fileData"]
     }
   }
 }

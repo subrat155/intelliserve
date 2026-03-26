@@ -1,10 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, Link, useNavigate, useLocation } from 'react-router-dom';
-import { deleteDoc, auth, googleProvider, signInWithPopup, signOut, db, collection, query, where, onSnapshot, doc, setDoc, serverTimestamp, getDocs, addDoc, getDoc } from './firebase';
-import { onAuthStateChanged, User as FirebaseAuthUser } from 'firebase/auth';
+import { BrowserRouter as Router, Routes, Route, Navigate, Link, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
+import { deleteDoc, db, collection, query, where, onSnapshot, doc, setDoc, serverTimestamp, getDocs, addDoc, getDoc } from './firebase';
+import { SignIn, SignUp, UserButton, useUser, useAuth, useSignIn } from '@clerk/react';
 
-export interface User extends FirebaseAuthUser {
+export interface User {
+  uid: string;
+  email: string;
+  displayName: string;
   employeeId?: string;
+  role?: string;
 }
 
 
@@ -18,7 +22,6 @@ import {
   ShieldCheck,
   Menu,
   X,
-  Loader2,
   Briefcase,
   Headphones,
   Megaphone,
@@ -35,7 +38,7 @@ import axios from 'axios';
 
 // --- Components ---
 
-const Sidebar = ({ user, isAdmin, onLogout, theme, toggleTheme, isMobileMenuOpen, setIsMobileMenuOpen }: { user: User, isAdmin: boolean, onLogout: () => void, theme: 'light' | 'dark', toggleTheme: () => void, isMobileMenuOpen?: boolean, setIsMobileMenuOpen?: (open: boolean) => void }) => {
+const Sidebar = ({ user, isAdmin, theme, toggleTheme, isMobileMenuOpen, setIsMobileMenuOpen }: { user: User, isAdmin: boolean, onLogout: () => void, theme: 'light' | 'dark', toggleTheme: () => void, isMobileMenuOpen?: boolean, setIsMobileMenuOpen?: (open: boolean) => void }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [isOpen, setIsOpen] = useState(true);
@@ -51,13 +54,14 @@ const Sidebar = ({ user, isAdmin, onLogout, theme, toggleTheme, isMobileMenuOpen
   ];
 
   if (isAdmin) {
-    navItems.push({ icon: ShieldCheck, label: 'Admin Panel', path: '/admin' });
+    navItems.push({ icon: ShieldCheck, label: 'HR Admin Panel', path: '/admin' });
   }
 
-  if (localStorage.getItem('isHR') === 'true') {
+  // If the user is the specific HR admin, only show the HR Admin Panel and essential items
+  if (user.email === 'kumarsubrat627@gmail.com') {
     navItems = [
-      { icon: LayoutDashboard, label: 'Dashboard', path: '/' },
       { icon: MessageSquare, label: 'Chatbot', path: '/chat' },
+      { icon: ShieldCheck, label: 'HR Admin Panel', path: '/admin' },
     ];
   }
 
@@ -87,6 +91,7 @@ const Sidebar = ({ user, isAdmin, onLogout, theme, toggleTheme, isMobileMenuOpen
         <nav className="flex-1 px-4 space-y-2 overflow-y-auto">
           {navItems.map((item) => {
             const isActive = location.pathname === item.path;
+
             return (
               <Link
                 key={item.path}
@@ -113,13 +118,10 @@ const Sidebar = ({ user, isAdmin, onLogout, theme, toggleTheme, isMobileMenuOpen
             {theme === 'light' ? <Moon size={20} className="shrink-0" /> : <Sun size={20} className="shrink-0" />}
             {isOpen && <span className="truncate">{theme === 'light' ? 'Dark Mode' : 'Light Mode'}</span>}
           </button>
-          <button 
-            onClick={onLogout}
-            className="flex items-center gap-4 p-3 w-full hover:bg-red-900/20 text-red-400 rounded-xl transition-colors group"
-          >
-            <LogOut size={20} className="shrink-0" />
-            {isOpen && <span className="truncate">Logout</span>}
-          </button>
+          <div className="flex items-center gap-4 p-3 w-full hover:bg-slate-800 dark:hover:bg-slate-700 text-slate-400 rounded-xl transition-colors group">
+            <UserButton />
+            {isOpen && <span className="truncate">Manage Account</span>}
+          </div>
         </div>
       </div>
     </>
@@ -164,6 +166,7 @@ const EmployeeServicesPage = ({ user }: { user: User }) => {
         await addDoc(collection(db, 'leaveRequests'), {
           userId: user.uid,
           userName: user.displayName,
+          userEmail: user.email,
           reason: leaveReason.trim(),
           status: 'Pending',
           createdAt: serverTimestamp()
@@ -463,32 +466,38 @@ const HRAdminPage = ({ onLogout }: { onLogout: () => void }) => {
   };
 
   return (
-    <div className="p-8">
-      <h1 className="text-3xl font-bold mb-8">HR Dashboard</h1>
+    <div className="p-8 dark:bg-slate-950 min-h-screen">
+      <div className="flex justify-between items-center mb-8">
+        <h1 className="text-3xl font-bold dark:text-white">HR Dashboard</h1>
+        <div className="flex items-center gap-4">
+          <UserButton />
+          <span className="text-sm font-medium text-slate-600 dark:text-slate-400">HR Admin</span>
+        </div>
+      </div>
       
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 lg:col-span-2">
-          <h2 className="text-xl font-bold mb-4">Employee Directory</h2>
+        <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700 lg:col-span-2">
+          <h2 className="text-xl font-bold mb-4 dark:text-white">Employee Directory</h2>
           <div className="overflow-x-auto">
             <table className="w-full text-left">
-              <thead className="bg-slate-50 border-b border-slate-100">
+              <thead className="bg-slate-50 dark:bg-slate-900/50 border-b border-slate-100 dark:border-slate-700">
                 <tr>
-                  <th className="p-3 font-semibold text-slate-600">Employee ID</th>
-                  <th className="p-3 font-semibold text-slate-600">Name</th>
-                  <th className="p-3 font-semibold text-slate-600">Email</th>
+                  <th className="p-3 font-semibold text-slate-600 dark:text-slate-400">Employee ID</th>
+                  <th className="p-3 font-semibold text-slate-600 dark:text-slate-400">Name</th>
+                  <th className="p-3 font-semibold text-slate-600 dark:text-slate-400">Email</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
                 {employees.map(emp => (
-                  <tr key={emp.id} className="hover:bg-slate-50">
-                    <td className="p-3 font-mono text-sm font-bold text-emerald-600">{emp.employeeId || '----'}</td>
-                    <td className="p-3 font-medium text-slate-900">{emp.displayName}</td>
-                    <td className="p-3 text-slate-500 text-sm">{emp.email}</td>
+                  <tr key={emp.id} className="hover:bg-slate-50 dark:hover:bg-slate-900/30">
+                    <td className="p-3 font-mono text-sm font-bold text-emerald-600 dark:text-emerald-400">{emp.employeeId || '----'}</td>
+                    <td className="p-3 font-medium text-slate-900 dark:text-white">{emp.displayName}</td>
+                    <td className="p-3 text-slate-500 dark:text-slate-400 text-sm">{emp.email}</td>
                   </tr>
                 ))}
                 {employees.length === 0 && (
                   <tr>
-                    <td colSpan={3} className="p-4 text-center text-slate-500">No employees found.</td>
+                    <td colSpan={3} className="p-4 text-center text-slate-500 dark:text-slate-400">No employees found.</td>
                   </tr>
                 )}
               </tbody>
@@ -496,8 +505,8 @@ const HRAdminPage = ({ onLogout }: { onLogout: () => void }) => {
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
-          <h2 className="text-xl font-bold mb-4">Add New Policy</h2>
+        <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700">
+          <h2 className="text-xl font-bold mb-4 dark:text-white">Add New Policy</h2>
           {error && <p className="text-red-500 text-sm mb-4">{error}</p>}
           <div className="space-y-4">
             <input 
@@ -505,91 +514,92 @@ const HRAdminPage = ({ onLogout }: { onLogout: () => void }) => {
               value={newPolicyName}
               onChange={(e) => setNewPolicyName(e.target.value)}
               placeholder="Policy Name"
-              className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              className="w-full px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
             />
             
-            <div className="border border-slate-200 rounded-xl p-4">
-              <p className="text-sm font-semibold mb-2">Option 1: Upload File (PDF/DOCX, max 800KB)</p>
+            <div className="border border-slate-200 dark:border-slate-600 rounded-xl p-4">
+              <p className="text-sm font-semibold mb-2 dark:text-slate-300">Option 1: Upload File (PDF/DOCX, max 800KB)</p>
               <input 
                 id="file-upload"
                 type="file" 
                 accept=".pdf,.doc,.docx"
                 onChange={handleFileUpload}
-                className="text-sm w-full"
+                className="text-sm w-full dark:text-slate-400"
               />
             </div>
 
-            <div className="text-center text-slate-400 font-medium">OR</div>
+            <div className="text-center text-slate-400 dark:text-slate-500 font-medium">OR</div>
 
-            <div className="border border-slate-200 rounded-xl p-4">
-              <p className="text-sm font-semibold mb-2">Option 2: Manual Text Entry</p>
+            <div className="border border-slate-200 dark:border-slate-600 rounded-xl p-4">
+              <p className="text-sm font-semibold mb-2 dark:text-slate-300">Option 2: Manual Text Entry</p>
               <textarea 
                 value={policyContent}
                 onChange={(e) => setPolicyContent(e.target.value)}
                 placeholder="Type policy content here..."
-                className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 resize-none h-32"
+                className="w-full px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 resize-none h-32"
               />
             </div>
 
             <button 
               onClick={addPolicy} 
               disabled={isSubmitting}
-              className="w-full bg-emerald-600 text-white px-4 py-3 font-semibold rounded-xl disabled:opacity-50"
+              className="w-full bg-emerald-600 text-white px-4 py-3 font-semibold rounded-xl disabled:opacity-50 hover:bg-emerald-700 transition-colors"
             >
               {isSubmitting ? 'Adding...' : 'Add Policy'}
             </button>
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
-          <h2 className="text-xl font-bold mb-4">Manage Policies</h2>
-          <div className="space-y-3 max-h-96 overflow-y-auto">
+        <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700">
+          <h2 className="text-xl font-bold mb-4 dark:text-white">Manage Policies</h2>
+          <div className="space-y-3 max-h-96 overflow-y-auto scrollbar-hide">
             {policies.map(p => (
-              <div key={p.id} className="flex justify-between items-center p-4 bg-slate-50 rounded-xl">
+              <div key={p.id} className="flex justify-between items-center p-4 bg-slate-50 dark:bg-slate-900/50 rounded-xl">
                 <div>
-                  <p className="font-semibold text-slate-900">{p.name}</p>
-                  <p className="text-xs text-slate-500">{p.fileData ? 'File Upload' : 'Text Entry'}</p>
+                  <p className="font-semibold text-slate-900 dark:text-white">{p.name}</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">{p.fileData ? 'File Upload' : 'Text Entry'}</p>
                 </div>
-                <button onClick={() => deleteDoc(doc(db, 'documents', p.id))} className="text-red-500 text-sm font-semibold px-3 py-1 hover:bg-red-50 rounded-lg transition-colors">Delete</button>
+                <button onClick={() => deleteDoc(doc(db, 'documents', p.id))} className="text-red-500 dark:text-red-400 text-sm font-semibold px-3 py-1 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors">Delete</button>
               </div>
             ))}
-            {policies.length === 0 && <p className="text-slate-500 text-sm">No policies added yet.</p>}
+            {policies.length === 0 && <p className="text-slate-500 dark:text-slate-400 text-sm">No policies added yet.</p>}
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
-          <h2 className="text-xl font-bold mb-4">Leave Requests</h2>
-          <div className="space-y-3 max-h-96 overflow-y-auto">
+        <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700">
+          <h2 className="text-xl font-bold mb-4 dark:text-white">Leave Requests</h2>
+          <div className="space-y-3 max-h-96 overflow-y-auto scrollbar-hide">
             {leaveRequests.map(l => (
-              <div key={l.id} className="p-4 bg-slate-50 rounded-xl">
-                <p className="font-semibold text-sm text-slate-900">User ID: {l.userId}</p>
-                <p className="text-sm text-slate-700 mt-1">Reason: {l.reason}</p>
-                <p className="text-xs text-slate-400 mb-2 mt-1">{l.createdAt?.toDate().toLocaleString()}</p>
+              <div key={l.id} className="p-4 bg-slate-50 dark:bg-slate-900/50 rounded-xl">
+                <p className="font-semibold text-sm text-slate-900 dark:text-white">{l.userName || 'Unknown User'}</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">{l.userEmail || l.userId}</p>
+                <p className="text-sm text-slate-700 dark:text-slate-300 mt-2">Reason: {l.reason}</p>
+                <p className="text-xs text-slate-400 dark:text-slate-500 mb-2 mt-1">{l.createdAt?.toDate().toLocaleString()}</p>
                 <div className="flex items-center justify-between">
-                  <span className={`text-xs font-bold px-2 py-1 rounded-full ${l.status === 'Approved' ? 'bg-emerald-100 text-emerald-700' : l.status === 'Rejected' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'}`}>
+                  <span className={`text-xs font-bold px-2 py-1 rounded-full ${l.status === 'Approved' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : l.status === 'Rejected' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'}`}>
                     {l.status || 'Pending'}
                   </span>
                   {(!l.status || l.status === 'Pending') && (
                     <div className="flex gap-2">
-                      <button onClick={() => updateLeaveStatus(l.id, 'Approved')} className="text-emerald-600 text-xs font-bold hover:underline">Approve</button>
-                      <button onClick={() => updateLeaveStatus(l.id, 'Rejected')} className="text-red-600 text-xs font-bold hover:underline">Reject</button>
+                      <button onClick={() => updateLeaveStatus(l.id, 'Approved')} className="text-emerald-600 dark:text-emerald-400 text-xs font-bold hover:underline">Approve</button>
+                      <button onClick={() => updateLeaveStatus(l.id, 'Rejected')} className="text-red-600 dark:text-red-400 text-xs font-bold hover:underline">Reject</button>
                     </div>
                   )}
                 </div>
               </div>
             ))}
-            {leaveRequests.length === 0 && <p className="text-slate-500 text-sm">No leave requests.</p>}
+            {leaveRequests.length === 0 && <p className="text-slate-500 dark:text-slate-400 text-sm">No leave requests.</p>}
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
-          <h2 className="text-xl font-bold mb-4">Upload Payslip</h2>
+        <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700">
+          <h2 className="text-xl font-bold mb-4 dark:text-white">Upload Payslip</h2>
           {payslipError && <p className="text-red-500 text-sm mb-4">{payslipError}</p>}
           <div className="space-y-4">
             <select 
               value={payslipUser}
               onChange={(e) => setPayslipUser(e.target.value)}
-              className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
+              className="w-full px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
             >
               <option value="">Select Employee</option>
               {employees.map(emp => (
@@ -603,102 +613,145 @@ const HRAdminPage = ({ onLogout }: { onLogout: () => void }) => {
               value={payslipMonth}
               onChange={(e) => setPayslipMonth(e.target.value)}
               placeholder="Month/Year (e.g., March 2026)"
-              className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              className="w-full px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
             />
             
-            <div className="border border-slate-200 rounded-xl p-4">
-              <p className="text-sm font-semibold mb-2">Upload Payslip (PDF, max 800KB)</p>
+            <div className="border border-slate-200 dark:border-slate-600 rounded-xl p-4">
+              <p className="text-sm font-semibold mb-2 dark:text-slate-300">Upload Payslip (PDF, max 800KB)</p>
               <input 
                 id="payslip-upload"
                 type="file" 
                 accept=".pdf"
                 onChange={handlePayslipUpload}
-                className="text-sm w-full"
+                className="text-sm w-full dark:text-slate-400"
               />
             </div>
 
             <button 
               onClick={addPayslip} 
               disabled={isPayslipSubmitting}
-              className="w-full bg-blue-600 text-white px-4 py-3 font-semibold rounded-xl disabled:opacity-50"
+              className="w-full bg-blue-600 text-white px-4 py-3 font-semibold rounded-xl disabled:opacity-50 hover:bg-blue-700 transition-colors"
             >
               {isPayslipSubmitting ? 'Uploading...' : 'Upload Payslip'}
             </button>
           </div>
         </div>
       </div>
-      
-      <button onClick={onLogout} className="mt-8 bg-red-600 text-white px-4 py-2 rounded-xl">Logout HR</button>
     </div>
   );
 };
 
-const LoginPage = ({ onHRLogin }: { onHRLogin: () => void }) => {
-  const [loading, setLoading] = useState(false);
-  const [hrUsername, setHrUsername] = useState('');
-  const [hrPassword, setHrPassword] = useState('');
-  const [hrError, setHrError] = useState('');
-  const [loginError, setLoginError] = useState('');
+const WelcomePage = () => {
+  const navigate = useNavigate();
+  return (
+    <div className="h-screen bg-slate-50 flex flex-col items-center justify-center p-4 text-center relative overflow-hidden">
+      {/* Background Decoration */}
+      <div className="absolute top-0 left-0 w-full h-full pointer-events-none z-0 opacity-5">
+        <lottie-player 
+          src="https://assets9.lottiefiles.com/packages/lf20_x1gjdldd.json"
+          background="transparent" 
+          speed="0.5" 
+          style={{ width: '100%', height: '100%' }}
+          loop 
+          autoplay
+        ></lottie-player>
+      </div>
 
-  const handleLogin = async () => {
-    if (loading) return;
-    setLoading(true);
-    setLoginError('');
-    console.log("Attempting Google Sign-in...");
-    try {
-      const result = await signInWithPopup(auth, googleProvider);
-      console.log("Sign-in result:", result);
-      const user = result.user;
-      
-      const userDocRef = doc(db, 'users', user.uid);
-      try {
-        const userSnap = await getDoc(userDocRef);
-        let employeeId = '';
-        if (userSnap.exists() && userSnap.data().employeeId && /^\d{4}$/.test(userSnap.data().employeeId)) {
-          employeeId = userSnap.data().employeeId;
-        } else {
-          employeeId = Math.floor(1000 + Math.random() * 9000).toString();
-        }
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.5 }}
+        className="max-w-xl w-full bg-white p-6 md:p-10 rounded-[40px] shadow-2xl border border-slate-100 flex flex-col items-center z-10 relative"
+      >
+        <div className="absolute -top-6 -left-6 w-20 h-20 bg-emerald-500 rounded-3xl -rotate-12 z-[-1] opacity-20 blur-xl"></div>
+        <div className="absolute -bottom-6 -right-6 w-24 h-24 bg-blue-500 rounded-full z-[-1] opacity-10 blur-2xl"></div>
 
-        await setDoc(userDocRef, {
-          uid: user.uid,
-          email: user.email,
-          displayName: user.displayName,
-          role: user.email === 'kumarsubrat627@gmail.com' ? 'admin' : 'employee',
-          employeeId: employeeId,
-          createdAt: serverTimestamp()
-        }, { merge: true });
-        console.log("User document set successfully");
-      } catch (firestoreError) {
-        console.error("Firestore setDoc error:", firestoreError);
-        setLoginError("Login successful, but failed to save user data. Please check console for details.");
-      }
-    } catch (error: any) {
-      console.error("Login error:", error);
-      if (error.code === 'auth/cancelled-popup-request') {
-        setLoginError("Sign-in was cancelled. Please try again.");
-      } else if (error.code === 'auth/popup-blocked') {
-        setLoginError("The sign-in popup was blocked by your browser. Please allow popups for this site.");
-      } else {
-        setLoginError("An error occurred during sign-in: " + error.message);
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
+        <div className="w-full aspect-video max-w-sm mb-6 rounded-[24px] overflow-hidden shadow-xl shadow-emerald-100/50 border-4 border-white bg-slate-50 relative group">
+          <div className="absolute inset-0 bg-gradient-to-tr from-emerald-500/5 to-transparent pointer-events-none"></div>
+          <iframe 
+            src="https://lottie.host/embed/6be28cd6-ee8c-45e6-97e7-1bbaff3a3cee/y5vPfSREVX.lottie" 
+            className="w-full h-full border-0 scale-110"
+            title="Welcome Animation"
+          ></iframe>
+        </div>
 
-  const handleHrLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (hrUsername === 'hr00990099' && hrPassword === '909021') {
-      onHRLogin();
-    } else {
-      setHrError('Invalid HR credentials');
-    }
-  };
+        <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-sm border border-slate-100 overflow-hidden">
+          <img src="https://cdn-icons-png.flaticon.com/128/3845/3845696.png" alt="IntelliServe Logo" className="w-10 h-10" referrerPolicy="no-referrer" />
+        </div>
+
+        <motion.h2 
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.3 }}
+          className="text-xl md:text-2xl font-black text-emerald-600 mb-8 tracking-[0.2em] uppercase"
+        >
+          TO INTELLISERVE
+        </motion.h2>
+
+        <div className="flex flex-col sm:flex-row gap-4 w-full">
+          <motion.button 
+            whileHover={{ scale: 1.02, y: -2 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={() => {
+              sessionStorage.setItem('hr_login_attempt', 'true');
+              navigate('/sign-in?role=hr');
+            }}
+            className="flex-1 bg-slate-900 text-white px-6 py-4 rounded-[20px] font-bold hover:bg-slate-800 transition-all flex flex-col items-center justify-center gap-2 group shadow-lg shadow-slate-200"
+          >
+            <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center transition-colors overflow-hidden">
+              <img 
+                src="https://cdn-icons-png.flaticon.com/128/3165/3165611.png" 
+                alt="HR Logo" 
+                className="w-6 h-6 object-contain" 
+                referrerPolicy="no-referrer"
+              />
+            </div>
+            <span className="text-base text-red-500">Access as HR</span>
+          </motion.button>
+
+          <motion.button 
+            whileHover={{ scale: 1.02, y: -2 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={() => {
+              sessionStorage.removeItem('hr_login_attempt');
+              navigate('/sign-in?role=employee');
+            }}
+            className="flex-1 bg-emerald-600 text-white px-6 py-4 rounded-[20px] font-bold hover:bg-emerald-700 transition-all flex flex-col items-center justify-center gap-2 group shadow-lg shadow-emerald-100"
+          >
+            <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center transition-colors overflow-hidden">
+              <img 
+                src="https://cdn-icons-png.flaticon.com/128/8736/8736942.png" 
+                alt="Employee Logo" 
+                className="w-6 h-6 object-contain" 
+                referrerPolicy="no-referrer"
+              />
+            </div>
+            <span className="text-base">Access as Employee</span>
+          </motion.button>
+        </div>
+        
+        <div className="mt-8 pt-6 border-t border-slate-100 w-full flex flex-col items-center gap-1">
+          <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">Powered By</p>
+          <p className="text-slate-600 text-xs font-black">Grp-255, GEC</p>
+        </div>
+      </motion.div>
+    </div>
+  );
+};
+
+const LoginPage = ({ mode }: { mode: 'signin' | 'signup' }) => {
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const role = searchParams.get('role') || 'employee';
+  const error = searchParams.get('error');
+  const { isLoaded } = useSignIn() as any;
+
+  const title = role === 'hr' 
+    ? "Sign in to IntelliServe as HR" 
+    : "Sign in to IntelliServe as employee";
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4 relative overflow-hidden">
-      
+    <div className="h-screen bg-slate-50 flex flex-col items-center justify-center p-4 relative overflow-hidden">
       {/* Interactive AI Lottie Animations */}
       <div className="absolute top-0 left-0 w-full h-full pointer-events-none z-0 flex items-center justify-center opacity-10">
         <lottie-player 
@@ -726,63 +779,57 @@ const LoginPage = ({ onHRLogin }: { onHRLogin: () => void }) => {
       {/* Corner Styled Triangle (Top Left) */}
       <div className="absolute top-0 left-0 w-0 h-0 border-t-[100px] border-t-slate-900 border-r-[100px] border-r-transparent z-50"></div>
 
-      <div className="flex flex-col md:flex-row gap-8 w-full max-w-5xl justify-center items-center z-10">
+      <div className="flex flex-col gap-4 w-full max-w-md justify-center items-center z-[60]">
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="claymorphism p-8 max-w-md w-full text-center border-4 border-red-500"
+          className="w-full text-center"
         >
-          <h2 className="text-xl font-bold text-red-600 mb-4">Employee Sign In</h2>
-          <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-6">
-            <ShieldCheck size={32} />
+          <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-sm border border-slate-100 overflow-hidden">
+            <img src="https://cdn-icons-png.flaticon.com/128/3845/3845696.png" alt="IntelliServe Logo" className="w-10 h-10" referrerPolicy="no-referrer" />
           </div>
-          <h1 className="text-3xl font-bold text-slate-900 mb-2">INTELLISERVE</h1>
-          <p className="text-slate-500 mb-8">AI-Driven Enterprise Support Chatbot</p>
+          <h1 className="text-xl font-bold text-slate-900 mb-2">{title}</h1>
           
-          {loginError && <p className="text-red-500 text-sm mb-4">{loginError}</p>}
-
-          <button 
-            onClick={handleLogin}
-            disabled={loading}
-            className="w-full bg-slate-900 text-white py-4 rounded-2xl font-semibold hover:bg-slate-800 transition-all flex items-center justify-center gap-3 disabled:opacity-50"
-          >
-            {loading ? (
-              <Loader2 className="animate-spin" size={24} />
+          {error === 'invalid_credential' && (
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="mb-4 p-3 bg-red-50 border border-red-100 text-red-600 rounded-xl text-sm font-medium flex items-center justify-center gap-2"
+            >
+              <X size={16} />
+              Invalid Credential. Only authorized HR emails are allowed.
+            </motion.div>
+          )}
+          
+          <div className="flex justify-center w-full scale-90 md:scale-100 origin-top">
+            {mode === 'signin' ? (
+              <SignIn 
+                routing="path" 
+                path="/sign-in" 
+                signUpUrl={`/sign-up?role=${role}`}
+                appearance={{
+                  elements: {
+                    headerTitle: "hidden",
+                    headerSubtitle: "hidden",
+                    card: "shadow-none border-none bg-transparent",
+                  }
+                }}
+              />
             ) : (
-              <>
-                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" className="w-6 h-6" alt="Google" />
-                Sign in with Google
-              </>
+              <SignUp 
+                routing="path" 
+                path="/sign-up" 
+                signInUrl={`/sign-in?role=${role}`}
+                appearance={{
+                  elements: {
+                    headerTitle: "hidden",
+                    headerSubtitle: "hidden",
+                    card: "shadow-none border-none bg-transparent",
+                  }
+                }}
+              />
             )}
-          </button>
-        </motion.div>
-
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="claymorphism p-8 max-w-md w-full"
-        >
-          <h2 className="text-xl font-bold text-slate-900 mb-4">HR Login</h2>
-          <form onSubmit={handleHrLogin} className="space-y-4">
-            <input 
-              type="text" 
-              placeholder="HR User ID" 
-              value={hrUsername}
-              onChange={(e) => setHrUsername(e.target.value)}
-              className="w-full p-3 border border-slate-200 rounded-xl"
-            />
-            <input 
-              type="password" 
-              placeholder="Password" 
-              value={hrPassword}
-              onChange={(e) => setHrPassword(e.target.value)}
-              className="w-full p-3 border border-slate-200 rounded-xl"
-            />
-            {hrError && <p className="text-red-500 text-sm">{hrError}</p>}
-            <button type="submit" className="w-full bg-emerald-600 text-white py-3 rounded-xl font-semibold hover:bg-emerald-700">
-              HR Login
-            </button>
-          </form>
+          </div>
         </motion.div>
       </div>
     </div>
@@ -853,6 +900,16 @@ const Dashboard = ({ user }: { user: User }) => {
               <BookOpen className="text-blue-600 dark:text-blue-400" />
               <span className="text-sm font-medium dark:text-slate-200">Browse Policies</span>
             </Link>
+            {user.role === 'admin' && (
+              <button 
+                onClick={() => (window as any).openHRLogin()}
+                className="p-4 bg-purple-50 dark:bg-purple-900/20 rounded-2xl hover:bg-purple-100 dark:hover:bg-purple-900/40 transition-all flex flex-col items-center gap-2 col-span-2 border-2 border-purple-200 dark:border-purple-800 shadow-lg shadow-purple-100 dark:shadow-none"
+              >
+                <ShieldCheck className="text-purple-600 dark:text-purple-400" size={32} />
+                <span className="text-lg font-bold text-purple-900 dark:text-purple-200">HR ADMIN PANEL ACCESS</span>
+                <p className="text-xs text-purple-600 dark:text-purple-400 font-medium">Secure HR Management System</p>
+              </button>
+            )}
           </div>
         </div>
 
@@ -929,6 +986,7 @@ const ChatbotPage = ({ user }: { user: User }) => {
       // 3. Save to history
       await addDoc(collection(db, 'queries'), {
         userId: user.uid,
+        userEmail: user.email,
         question: userMsg,
         answer: aiResponse,
         timestamp: serverTimestamp(),
@@ -1001,8 +1059,8 @@ const ChatbotPage = ({ user }: { user: User }) => {
         ))}
         {loading && (
           <div className="flex justify-start">
-            <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 rounded-tl-none flex items-center gap-2">
-              <Loader2 className="animate-spin text-emerald-600" size={16} />
+            <div className="bg-white p-2 rounded-2xl shadow-sm border border-slate-100 rounded-tl-none flex items-center gap-2">
+              <GlobalLoader size="sm" />
               <span className="text-sm text-slate-500">IntelliServe is thinking...</span>
             </div>
           </div>
@@ -1179,16 +1237,189 @@ const FloatingChatButton = () => {
   );
 };
 
-export default function App() {
-  const [user, setUser] = useState<User | null>(null);
+const GlobalLoader = ({ size = "md" }: { size?: "sm" | "md" | "lg" }) => {
+  const dimensions = {
+    sm: "w-8 h-8",
+    md: "w-32 h-32",
+    lg: "w-64 h-64"
+  }[size];
+
+  return (
+    <div className={`${dimensions} flex items-center justify-center overflow-hidden pointer-events-none`}>
+      <iframe 
+        src="https://lottie.host/embed/d1a209ae-e74f-42fd-a485-de2bb136abdd/ks8Q6Q05Rc.lottie"
+        className="w-full h-full border-0 scale-[2.0]"
+        title="Loading Animation"
+      ></iframe>
+    </div>
+  );
+};
+
+const AuthenticatedApp = ({ theme, toggleTheme, isMobileMenuOpen, setIsMobileMenuOpen }: any) => {
+  const { user, isLoaded } = useUser();
+  const { signOut } = useAuth();
+  const [dbUser, setDbUser] = useState<User | null>(null);
+  const [isAdmin, setIsAdmin] = useState(() => {
+    if (!user) return false;
+    const email = user.primaryEmailAddress?.emailAddress || '';
+    return email === 'kumarsubrat627@gmail.com';
+  });
   const [loading, setLoading] = useState(true);
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [isHR, setIsHR] = useState(false);
+
+  const isHRAuthenticated = user?.primaryEmailAddress?.emailAddress === 'kumarsubrat627@gmail.com';
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    if (isLoaded && user) {
+      const email = user.primaryEmailAddress?.emailAddress || '';
+      const isHRLoginAttempt = sessionStorage.getItem('hr_login_attempt') === 'true';
+      
+      if (isHRLoginAttempt && email !== 'kumarsubrat627@gmail.com') {
+        // Unauthorized HR login attempt
+        sessionStorage.removeItem('hr_login_attempt');
+        signOut().then(() => {
+          navigate('/sign-in?role=hr&error=invalid_credential');
+        });
+        return;
+      }
+
+      if (location.pathname === '/' && email === 'kumarsubrat627@gmail.com') {
+        navigate('/admin');
+      }
+    }
+  }, [isLoaded, user, location.pathname, navigate, signOut]);
+
+  useEffect(() => {
+    if (isLoaded && user) {
+      const userDocRef = doc(db, 'users', user.id);
+      
+      // Use onSnapshot for real-time user data and faster initial load
+      const unsub = onSnapshot(userDocRef, async (snap) => {
+        const primaryEmail = user.primaryEmailAddress?.emailAddress || '';
+        const isSpecialAdmin = primaryEmail === 'kumarsubrat627@gmail.com';
+
+        if (snap.exists()) {
+          const data = snap.data();
+          let currentRole = data.role;
+          
+          // Force admin role if needed but only update if different
+          if (isSpecialAdmin && currentRole !== 'admin') {
+            await setDoc(userDocRef, { role: 'admin' }, { merge: true });
+            currentRole = 'admin';
+          }
+
+          setIsAdmin(currentRole === 'admin');
+          setDbUser({
+            uid: user.id,
+            email: primaryEmail,
+            displayName: user.fullName || user.firstName || 'User',
+            employeeId: data.employeeId,
+            role: currentRole
+          });
+          setLoading(false);
+        } else {
+      // New user creation
+      const employeeId = Math.floor(1000 + Math.random() * 9000).toString();
+      const role = primaryEmail === 'kumarsubrat627@gmail.com' ? 'admin' : 'employee';
+      
+      const newUser = {
+        uid: user.id,
+        email: primaryEmail,
+        displayName: user.fullName || user.firstName || 'User',
+        role,
+        employeeId,
+        createdAt: serverTimestamp()
+      };
+
+          await setDoc(userDocRef, newUser, { merge: true });
+          
+          setIsAdmin(role === 'admin');
+          setDbUser({
+            uid: user.id,
+            email: primaryEmail,
+            displayName: newUser.displayName,
+            employeeId,
+            role
+          });
+          setLoading(false);
+        }
+      }, (error) => {
+        console.error("Error syncing user:", error);
+        setLoading(false);
+      });
+
+      return () => unsub();
+    }
+  }, [isLoaded, user]);
+
+  if (loading || !isLoaded || !dbUser) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-slate-900 text-white">
+        <div className="text-center flex flex-col items-center">
+          <GlobalLoader size="lg" />
+          <p className="text-slate-400 -mt-8">Loading your workspace...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex h-screen bg-slate-50 dark:bg-slate-950 overflow-hidden">
+      <Sidebar 
+        user={dbUser} 
+        isAdmin={isAdmin} 
+        onLogout={() => {}} 
+        theme={theme} 
+        toggleTheme={toggleTheme} 
+        isMobileMenuOpen={isMobileMenuOpen} 
+        setIsMobileMenuOpen={setIsMobileMenuOpen}
+      />
+      <main className="flex-1 overflow-y-auto dark:bg-slate-950 flex flex-col relative">
+        <div className="md:hidden p-4 bg-white dark:bg-slate-900 flex items-center justify-between border-b border-slate-200 dark:border-slate-800 shrink-0">
+          <div className="flex items-center gap-2">
+            <img src="https://cdn-icons-png.flaticon.com/128/3845/3845696.png" alt="IntelliServe Logo" className="w-8 h-8" referrerPolicy="no-referrer" />
+            <h1 className="text-xl font-bold tracking-tighter text-emerald-600 dark:text-emerald-400">INTELLISERVE</h1>
+          </div>
+          <button onClick={() => setIsMobileMenuOpen(true)} className="p-2 text-slate-600 dark:text-slate-300">
+            <Menu size={24} />
+          </button>
+        </div>
+        <div className="flex-1 overflow-y-auto flex flex-col">
+          <div className="flex-1 relative">
+            <Routes>
+              <Route path="/" element={<Dashboard user={dbUser} />} />
+              <Route path="/chat" element={<ChatbotPage user={dbUser} />} />
+              <Route path="/kb" element={<KnowledgeBase />} />
+              <Route path="/services" element={<EmployeeServicesPage user={dbUser} />} />
+              <Route path="/it" element={<ITSupportPage />} />
+              <Route path="/history" element={<HistoryPage user={dbUser} />} />
+              <Route path="/profile" element={<EmployeeProfilePage user={dbUser} />} />
+              <Route path="/admin" element={isAdmin ? <HRAdminPage onLogout={() => {}} /> : <Navigate to="/" replace />} />
+            </Routes>
+          </div>
+          <footer className="p-4 text-center text-sm text-slate-500 dark:text-slate-400 shrink-0">
+            Design and Developed By Grp-255,GEC
+          </footer>
+        </div>
+      </main>
+      <FloatingChatButton />
+    </div>
+  );
+};
+
+export default function App() {
+  const { isLoaded, isSignedIn } = useAuth();
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
-    console.log("Theme changed:", theme);
+    if (isLoaded && !isSignedIn) {
+      sessionStorage.removeItem('hr_session');
+    }
+  }, [isLoaded, isSignedIn]);
+
+  useEffect(() => {
     if (theme === 'dark') {
       document.documentElement.classList.add('dark');
     } else {
@@ -1196,131 +1427,34 @@ export default function App() {
     }
   }, [theme]);
 
-  const toggleTheme = () => {
-    setTheme(prev => prev === 'light' ? 'dark' : 'light');
-  };
+  const toggleTheme = () => setTheme(prev => prev === 'light' ? 'dark' : 'light');
 
-  useEffect(() => {
-    console.log("App: Component mounted");
-    const hr = localStorage.getItem('isHR') === 'true';
-    setIsHR(hr);
-
-    if (hr) {
-      setUser({ uid: 'hr-admin', displayName: 'HR Admin', email: 'hr@example.com' } as any);
-      setIsAdmin(true);
-    }
-
-    const unsubscribe = onAuthStateChanged(auth, async (u) => {
-      console.log("App: Auth state changed:", u ? u.email : "No user");
-      
-      // If currently in HR mode, ignore Firebase auth changes for the UI
-      if (localStorage.getItem('isHR') === 'true') {
-        setLoading(false);
-        return;
-      }
-
-      if (u) {
-        try {
-          console.log("App: Fetching user doc for", u.uid);
-          const userDoc = await getDoc(doc(db, 'users', u.uid));
-          let customUser = { ...u } as User;
-          if (userDoc.exists()) {
-            const data = userDoc.data();
-            const role = data.role;
-            customUser.employeeId = data.employeeId;
-            console.log("App: User role found:", role);
-            setIsAdmin(role === 'admin');
-          } else {
-            console.log("App: No user doc found in Firestore for", u.uid);
-            setIsAdmin(false);
-          }
-          setUser(customUser);
-        } catch (e) {
-          console.error("App: Error fetching user doc:", e);
-          setUser(u as User);
-        }
-      } else {
-        setUser(null);
-        setIsAdmin(false);
-      }
-      setLoading(false);
-    }, (error) => {
-      console.error("App: Auth state change error:", error);
-      setLoading(false);
-    });
-    return () => unsubscribe();
-  }, []);
-
-  const handleHRLogin = () => {
-    localStorage.setItem('isHR', 'true');
-    setIsHR(true);
-    setUser({ uid: 'hr-admin', displayName: 'HR Admin', email: 'hr@example.com' } as any);
-    setIsAdmin(true);
-  };
-
-  const handleHRLogout = async () => {
-    localStorage.removeItem('isHR');
-    setIsHR(false);
-    setIsAdmin(false);
-    setUser(auth.currentUser); // Revert to Firebase user if any
-    try {
-      await signOut(auth);
-    } catch (e) {
-      console.error(e);
-    }
-  };
-
-  if (loading) {
+  if (!isLoaded) {
     return (
       <div className="h-screen flex items-center justify-center bg-slate-900 text-white">
-        <div className="text-center">
-          <iframe src="https://lottie.host/embed/d1a209ae-e74f-42fd-a485-de2bb136abdd/ks8Q6Q05Rc.lottie" width="300" height="300" title="Loading animation"></iframe>
-          <p className="text-slate-400">Initializing INTELLISERVE...</p>
-        </div>
+        <GlobalLoader size="lg" />
       </div>
     );
   }
 
-  if (!user && !isHR) {
-    return <LoginPage onHRLogin={handleHRLogin} />;
-  }
-
   return (
-    <Router>
-      <div className="flex h-screen bg-slate-50 dark:bg-slate-950 overflow-hidden">
-        {user && <Sidebar user={user} isAdmin={isAdmin} onLogout={handleHRLogout} theme={theme} toggleTheme={toggleTheme} isMobileMenuOpen={isMobileMenuOpen} setIsMobileMenuOpen={setIsMobileMenuOpen} />}
-        <main className="flex-1 overflow-y-auto dark:bg-slate-950 flex flex-col">
-          {user && (
-            <div className="md:hidden p-4 bg-white dark:bg-slate-900 flex items-center justify-between border-b border-slate-200 dark:border-slate-800 shrink-0">
-              <div className="flex items-center gap-2">
-                <img src="https://cdn-icons-png.flaticon.com/128/3845/3845696.png" alt="IntelliServe Logo" className="w-8 h-8" referrerPolicy="no-referrer" />
-                <h1 className="text-xl font-bold tracking-tighter text-emerald-600 dark:text-emerald-400">INTELLISERVE</h1>
-              </div>
-              <button onClick={() => setIsMobileMenuOpen(true)} className="p-2 text-slate-600 dark:text-slate-300">
-                <Menu size={24} />
-              </button>
-            </div>
-          )}
-          <div className="flex-1 overflow-y-auto flex flex-col">
-            <div className="flex-1 relative">
-              <Routes>
-                <Route path="/" element={isHR ? <HRAdminPage onLogout={handleHRLogout} /> : <Dashboard user={user!} />} />
-                <Route path="/chat" element={<ChatbotPage user={user!} />} />
-                <Route path="/kb" element={<KnowledgeBase />} />
-                <Route path="/services" element={<EmployeeServicesPage user={user!} />} />
-                <Route path="/it" element={<ITSupportPage />} />
-                <Route path="/history" element={<HistoryPage user={user!} />} />
-                <Route path="/profile" element={<EmployeeProfilePage user={user!} />} />
-                <Route path="/admin" element={isAdmin ? <HRAdminPage onLogout={handleHRLogout} /> : <Navigate to="/" />} />
-              </Routes>
-            </div>
-            <footer className="p-4 text-center text-sm text-slate-500 dark:text-slate-400 shrink-0">
-              Design and Developed By Grp-255,GEC
-            </footer>
-          </div>
-        </main>
-        {user && <FloatingChatButton />}
-      </div>
-    </Router>
+    <Routes>
+      <Route path="/" element={
+        isSignedIn ? (
+          <AuthenticatedApp theme={theme} toggleTheme={toggleTheme} isMobileMenuOpen={isMobileMenuOpen} setIsMobileMenuOpen={setIsMobileMenuOpen} />
+        ) : (
+          <WelcomePage />
+        )
+      } />
+      <Route path="/sign-in/*" element={<LoginPage mode="signin" />} />
+      <Route path="/sign-up/*" element={<LoginPage mode="signup" />} />
+      <Route path="*" element={
+        isSignedIn ? (
+          <AuthenticatedApp theme={theme} toggleTheme={toggleTheme} isMobileMenuOpen={isMobileMenuOpen} setIsMobileMenuOpen={setIsMobileMenuOpen} />
+        ) : (
+          <Navigate to="/" replace />
+        )
+      } />
+    </Routes>
   );
 }

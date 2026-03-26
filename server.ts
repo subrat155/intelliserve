@@ -4,6 +4,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import fs from "fs";
 import dotenv from "dotenv";
+import api from "./src/api.js";
 
 dotenv.config();
 
@@ -23,19 +24,12 @@ process.on('unhandledRejection', (reason, promise) => {
 async function startServer() {
   console.log("Initializing Express...");
   const app = express();
-  const PORT = 3000;
+  const PORT = Number(process.env.PORT) || 3000;
 
   app.use(express.json());
 
-  // Health check
-  app.get("/api/health", (req, res) => {
-    console.log("Health check requested");
-    res.json({ status: "ok", timestamp: new Date().toISOString() });
-  });
-
-  app.get("/api/ping", (req, res) => {
-    res.json({ message: "pong" });
-  });
+  // Use the API routes
+  app.use("/api", api);
 
   // Vite integration
   if (process.env.NODE_ENV !== "production") {
